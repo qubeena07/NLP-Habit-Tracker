@@ -1,11 +1,12 @@
+import models
+import schemas
+import nlp_service
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import auth
 from database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
-import models
-import schemas
 
 
 
@@ -87,3 +88,21 @@ def delete_habit(habit_id: int, db: Session = Depends(auth.get_db)):
     db.delete(db_habit)
     db.commit()
     return {"detail": "Habit deleted"}
+
+@app.post("/habits/parse-habit",response_model=schemas.HabitOut)
+def parse__save_habit(
+    input_data: schemas.HabitNLPInput,
+    db: Session = Depends(auth.get_db),
+    current_user: models.User = Depends(auth.get_current_user)):
+
+    extracted_data = nlp_service.parse_user_input(input_data.raw_txt)
+    db_habit = models.HabitRecord(
+        user_input=input_data.raw_txt,
+        parsed_category=extracted_data["parsed_category"],
+        quantity=extracted_data["quantity"],
+        user_id=current_user.id
+    )
+    db.add(db_habit)
+    db.commit()
+    db.refresh(db_habit)
+    return db_habit 

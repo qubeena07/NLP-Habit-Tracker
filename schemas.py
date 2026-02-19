@@ -41,3 +41,6 @@ class HabitOut(HabitBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class HabitNLPInput(BaseModel):
+    raw_txt: str
