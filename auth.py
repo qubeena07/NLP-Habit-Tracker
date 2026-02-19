@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
+# from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -9,6 +9,8 @@ import os
 import hashlib
 from dotenv import load_dotenv
 
+load_dotenv()
+
 #security configurations
 SECRET_KEY = os.getenv("SECRET_KEY")
 # SECRET_KEY = "ab75b656570053475546974f61e1275a444eb5411d55f80e98dacc1f0cfb4e72"
@@ -17,7 +19,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 #password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 #tells fastapi where login endpoint is
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -29,13 +31,22 @@ def get_db():
     finally:
         db.close()
 
-def get_password_hash(password:str):
-    prepared_password = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return pwd_context.hash(prepared_password)
+import bcrypt
 
-def verify_password(plain_password, hashed_password):
-    prepared_password = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
-    return pwd_context.verify(prepared_password, hashed_password)
+# Remove the passlib pwd_context completely!
+
+def get_password_hash(password: str) -> str:
+    password_bytes = password.encode('utf-8')
+    
+    # Generate a secure salt and hash the password
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(password_bytes, salt)
+    return hashed_bytes.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    password_bytes = plain_password.encode('utf-8')
+    hash_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hash_bytes)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
